@@ -13,4 +13,4 @@ Pins:
 
 How to setup Wemos D1? Instructions can be found example from here: http://www.instructables.com/id/Programming-the-WeMos-Using-Arduino-SoftwareIDE/?ALLSTEPS
 
-... And temperature sensor setup instructions example from here: http://www.instructables.com/id/Temperature-with-DS18B20/?ALLSTEPS
+Remember install onewire library to your Arduino IDE https://github.com/adafruit/MAX31850_OneWire
