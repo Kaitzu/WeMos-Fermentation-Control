@@ -1,5 +1,5 @@
 # WeMos-Fermentation-Control
-Control your fermentation temperature with web interface and WiFi
+Control your fermentation temperature with web interface and WiFi and make great Beer https://www.instagram.com/hopmonkeybrewery/
 
 Parts:
 - ESP8266 WeMos-D1R2
