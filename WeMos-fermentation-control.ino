@@ -1,27 +1,33 @@
-// STC-1000 functionality with browser control 
-// Usage: http://<ip>/?box=<set temp> Example: http://192.168.100.16/?box=23
+// WeMos-Fermentation-Control
+// Control your fermentation temperature with web interface and WiFi and log temperature reading to cloud server 
+// Set temp using following url: http://<IP FROM SERIAL MONITOR>/?box=<TEMP>
 
 #include <ESP8266WiFi.h>
 #include <OneWire.h>
-#include <ESP8266HTTPClient.h>
  
-// OneWire DS18S20, DS18B20, DS1822 Temperature init
- 
-OneWire  ds(D4);  // on pin D4 (a 4.7K resistor is necessary)
+// Wifi and cloud server
+const char* ssid = "xxx";                         // SSID
+const char* password = "xxx";                     // WiFi password
+const char* host = "xxx";                         // Temperature logger host
+const char* privateKey = "xxx";                   // Secret key for logger host
 
-const char* ssid = "xxx"; // Your WiFi SSID
-const char* password = "xxx"; // Your WiFi Password
+OneWire  ds(D4);                                  // OneWire DS18S20 on pin D4 (a 4.7K resistor is necessary)
+
+// Pins
 const int Relay = D5;
 const int Relay2 = D6;
-int heatStatus = 0;
-int fridgeStatus = 0;
-int ledPin = D5;
-WiFiServer server(80);
+const int ledPin = D5;
 
-float value = 20.00; // Temperature default value
-float tolerance = 00.30; // Temerature setup value
-String box = "20"; // Temperature default value for browser
-int timeToLog = 0; // Cloud logger count
+// Variables
+int heatStatus = 0;                               // Set heat 0
+int fridgeStatus = 0;                             // Set cool 0
+int timeToLog = 495;                              // Cloud logger count. 5 measurements before first log
+float value = 20.00;                              // Temperature default value
+float tolerance = 00.30;                          // Temerature setup value
+String box = "20";                                // Temperature default value for browser
+
+// Server setup
+WiFiServer server(80);
 
 
 void setup() {
@@ -51,22 +57,23 @@ void setup() {
   // Start the server
   server.begin();
   Serial.println("Server started");
- 
+
   // Print the IP address
   Serial.print("Use this URL : ");
   Serial.print("http://");
   Serial.print(WiFi.localIP());
   Serial.println("/");  
+  
 }
  
 void loop() {
     
-// Read temperature
-float temperature = getTemp(); //will take about 750ms to run
+  // Read temperature
+  float temperature = getTemp(); //will take about 750ms to run
 
-// Read status of relays
-heatStatus = digitalRead(Relay);
-fridgeStatus = digitalRead(Relay2);
+  // Read status of relays
+  heatStatus = digitalRead(Relay);
+  fridgeStatus = digitalRead(Relay2);
   
   // Check if a client has connected
   WiFiClient client = server.available();
@@ -139,7 +146,7 @@ fridgeStatus = digitalRead(Relay2);
 
   if (timeToLog >= 500) {
       // Send Temperature reading to Cloud.
-      // logCloud(); // Uncomment and modify function for your needs
+      logCloud();
       timeToLog = 0;
   }
 
@@ -150,6 +157,7 @@ fridgeStatus = digitalRead(Relay2);
 }
 
 float getTemp(){
+  
   //returns the temperature from one DS18S20 in DEG Celsius
 
   byte data[12];
@@ -199,33 +207,54 @@ float getTemp(){
 }
 
 void logCloud() {
-  // Send temperature reading to cloud server
+
+  // Read temperature
   float temperature = getTemp(); //will take about 750ms to run
   String temp = String(temperature);
-   HTTPClient http;
-        Serial.print("[HTTP] begin...\n");
-        // configure traged server and url
-        http.begin("http://192.168.100.99/log.php?t=" + temp);
 
-        Serial.print("[HTTP] GET...\n");
-        // start connection and send HTTP header
-        int httpCode = http.GET();
-
-        // httpCode will be negative on error
-        if(httpCode > 0) {
-            // HTTP header has been send and Server response header has been handled
-            Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-            // file found at server
-            if(httpCode == HTTP_CODE_OK) {
-                String payload = http.getString();
-                Serial.println(payload);
-            }
-        } else {
-            Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-        }
-
-        http.end();
+  // Send temperature reading to cloud server
+  Serial.print("connecting to ");
+  Serial.println(host);
+  
+  // Use WiFiClient class to create TCP connections
+  WiFiClient client;
+  const int httpPort = 80;
+  if (!client.connect(host, httpPort)) {
+    Serial.println("connection failed");
+    return;
+  }
+  
+  // We now create a URI for the request
+  String url = "/log.php";
+  url += "?temp=";
+  url += temp;
+  url += "&key=";
+  url += privateKey;
+  
+  Serial.print("Requesting URL: ");
+  Serial.println(url);
+  
+  // This will send the request to the server
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" + 
+               "Connection: close\r\n\r\n");
+  unsigned long timeout = millis();
+  while (client.available() == 0) {
+    if (millis() - timeout > 5000) {
+      Serial.println(">>> Client Timeout !");
+      client.stop();
+      return;
+    }
+  }
+  
+  // Read all the lines of the reply from server and print them to Serial
+  while(client.available()){
+    String line = client.readStringUntil('\r');
+    Serial.print(line);
+  }
+  
+  Serial.println();
+  Serial.println("closing connection");
 }
 
 
