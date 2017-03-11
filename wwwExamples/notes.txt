@@ -1,0 +1,1 @@
+Reuirements LAMP server and Sqlite
