@@ -6,10 +6,10 @@
 #include <OneWire.h>
  
 // Wifi and cloud server
-const char* ssid = "xxx";                         // SSID
-const char* password = "xxx";                     // WiFi password
-const char* host = "xxx";                         // Temperature logger host
-const char* privateKey = "xxx";                   // Secret key for logger host
+const char* ssid = "yourSSID";                    // SSID
+const char* password = "yourWiFiPassword";        // WiFi password
+const char* host = "yourCloudHost.com";           // Temperature logger host
+const char* privateKey = "xxxx";                  // Secret key for logger host
 
 OneWire  ds(D4);                                  // OneWire DS18S20 on pin D4 (a 4.7K resistor is necessary)
 
